@@ -41,3 +41,18 @@ yarn-error.log*
 next-env.d.ts
 
 /prisma_app/generated/prisma
+
+# Model API - Large files (datasets, models, imagery)
+model_api/Dataset/*.tiff
+model_api/Dataset/*.zip
+model_api/Dataset/*.kmz
+model_api/Dataset/*.png
+model_api/outputs/models/*.pkl
+model_api/__pycache__/
+model_api/src/__pycache__/
+
+# Keep only essential Model API files
+# - Source code (.py files)
+# - CSV outputs (small)
+# - Documentation
+# - Configuration

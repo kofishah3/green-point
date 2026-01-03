@@ -11,6 +11,8 @@ interface IndicatorCardProps {
   trendValue: number;
   description?: string;   
   LST?: boolean;
+  maxValue?: number; // Maximum value for the gauge display (default: 1)
+  colorScaleMax?: number; // Maximum value for color gradient calculation (defaults to maxValue)
 }
 
 
@@ -21,6 +23,8 @@ export default function IndicatorCard({
   value,
   trendValue,
   LST = false,
+  maxValue = 1,
+  colorScaleMax,
 }: IndicatorCardProps) {
   const classColor = LST ? getTemperatureColor(value) : "";
   const [textColor, bgColor] = classColor.split(" ");
@@ -49,14 +53,14 @@ export default function IndicatorCard({
         {LST ? (
           <>
             <p className={`h-full w-full text-center text-5xl font-bold ${textColor}`}>
-              {value}°C
+              {value.toFixed(1)}°C
             </p>
-            <p className={`${textColor} w-full text-right`}>+{trendValue}°C</p>
+            <p className={`${textColor} w-full text-right`}>+{trendValue.toFixed(1)}°C</p>
           </>
         ) : (
           <>
-            <HalfCircleBar value={value} />
-            <p className="text-primary-green w-full text-right">+{trendValue}</p>
+            <HalfCircleBar value={value} max={maxValue} colorScaleMax={colorScaleMax} />
+            <p className="text-primary-green w-full text-right">+{trendValue.toFixed(2)}</p>
           </>
         )}
       </div>

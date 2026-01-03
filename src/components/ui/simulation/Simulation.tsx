@@ -79,19 +79,36 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
     // Calculate results after loading animation
     setTimeout(() => {
       const timeSteps = inputs.time_horizon;
-      const canopyGain = inputs.canopy_target_percent * 0.85;
-      const ndviGain = inputs.ndvi_target * 0.9;
+      const budgetEfficiency = Math.min(inputs.total_budget_cap / (inputs.canopy_target_percent * inputs.cost_per_sqm * 100), 1.2); // 1.2 means budget is plenty
+      const effectiveCanopyGain = inputs.canopy_target_percent * Math.min(budgetEfficiency, 1) * 0.9; // 90% success rate assumption
+      const ndviGain = inputs.ndvi_target * Math.min(budgetEfficiency, 1) * 0.95;
       
-      const cooling = canopyGain * 0.12 + ndviGain * 2.5;
-      const stormwater = canopyGain * 12 + (inputs.intervention_type === 'rain garden' ? 50 : 0);
-      const pm25 = canopyGain * 0.8 + ndviGain * 15;
-      const no2 = canopyGain * 0.4 + ndviGain * 8;
+      // Realistic Physics-based Approximations
+      // Cooling: Logarithmic returns. First few trees do more than the 100th tree.
+      const cooling = (Math.log(effectiveCanopyGain + 1) * 0.5) + (ndviGain * 1.8);
+      
+      // Stormwater: Linear with canopy, but step-change with specific interventions
+      let stormwaterBase = effectiveCanopyGain * 8; // Trees intercept water
+      if (inputs.intervention_type.includes('rain') || inputs.intervention_type.includes('garden')) stormwaterBase += 80; // Rain gardens are huge sponges
+      if (inputs.intervention_type.includes('roof')) stormwaterBase += 40; // Green roofs retain water
+      const stormwater = stormwaterBase * (1 + (inputs.rainfall_change_rate / 100)); // Adjust for climate change rainfall
+
+      // Pollution removal: Directly proportional to biomass (Canopy + NDVI)
+      const pm25 = effectiveCanopyGain * 0.9 + ndviGain * 12;
+      const no2 = effectiveCanopyGain * 0.5 + ndviGain * 7;
 
       const giEvolution = [];
       for (let i = 0; i <= timeSteps; i++) {
         const progress = i / timeSteps;
-        const quantityScore = baselineData.ndvi + (ndviGain * progress);
-        const envQualityScore = 0.62 + (0.18 * progress) - (inputs.temperature_increase_rate * i * 0.5);
+        // Non-linear adoption curve (S-curve)
+        const adoptionRate = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+        const quantityScore = Math.min(baselineData.ndvi + (ndviGain * adoptionRate), 1.0);
+        // Environmental quality degrades with temp increase, improves with greening
+        const envQualityScore = Math.max(0, Math.min(1, 
+          0.62 + (0.25 * adoptionRate) - (inputs.temperature_increase_rate * i * 0.8)
+        ));
+        
         const giScore = (quantityScore * 0.6 + envQualityScore * 0.4);
         
         giEvolution.push({
@@ -112,24 +129,43 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
       let priority = 'Moderate';
       let rationale = 'Balanced approach addressing both immediate cooling needs and long-term resilience.';
 
-      if (inputs.flooding_severity === 'high' && inputs.rainfall_change_rate > 10) {
-        recommendation = 'Rain Garden Network with Green Corridors';
+      // Detailed Logic for Recommendation
+      if (inputs.flooding_severity === 'high' || inputs.rainfall_change_rate > 10) {
+        recommendation = 'Blue-Green Infrastructure Network';
         priority = 'High';
-        rationale = 'High flood risk requires prioritized stormwater management infrastructure combined with green corridors for water flow management.';
-      } else if (cooling > 3 && inputs.total_budget_cap > 4000000) {
-        recommendation = 'Intensive Urban Canopy Enhancement';
-        priority = 'High';
-        rationale = 'Strong cooling potential with adequate budget justifies focused canopy expansion to maximize temperature reduction benefits.';
-      } else if (inputs.total_budget_cap < 3000000) {
-        recommendation = 'Phased Green Corridor Development';
+        rationale = 'Critical flood risks necessitate a network of rain gardens and bioswales. Traditional canopy alone is insufficient for the projected rainfall volume.';
+      } else if (cooling > 1.5 && inputs.temperature_increase_rate > 0.04) {
+        recommendation = 'Aggressive Urban Forestry';
+        priority = 'Critical';
+        rationale = 'With rapid temperature rise projected, maximizing canopy cover is the only viable strategy to maintain livability standards.';
+      } else if (budgetEfficiency < 0.7) {
+        recommendation = 'Targeted Pocket Parks (Phased)';
         priority = 'Moderate';
-        rationale = 'Budget constraints suggest phased implementation focusing on cost-effective green corridors that provide multiple benefits.';
+        rationale = `Current budget covers only ${(budgetEfficiency * 100).toFixed(0)}% of the ambitious target. A phased approach focusing on high-impact pocket parks is recommended to maximize ROI.`;
+      } else if (baselineData.greeneryIndex > 0.6 && effectiveCanopyGain < 5) {
+        recommendation = 'Maintenance & Preservation Strategy';
+        priority = 'Low';
+        rationale = 'The area already has healthy greenery. Focus should shift to maintenance and protecting existing assets rather than aggressive new planting.';
       }
+
+      // Generate Interpretation
+      const interpretation = `
+        **Simulation Analysis:**
+        
+        Under the selected scenario, achieving a **${effectiveCanopyGain.toFixed(1)}% increase in canopy cover** is projected to reduce local temperatures by **${cooling.toFixed(2)}°C**. 
+        
+        ${budgetEfficiency < 1.0 
+          ? `⚠️ **Budget Warning:** The allocated budget of ₱${(inputs.total_budget_cap/1000000).toFixed(1)}M is insufficient for the full target. The simulation assumes a reduced implementation scale of ${(budgetEfficiency*100).toFixed(0)}%.` 
+          : `✅ **Feasibility:** The budget is sufficient to fully realize the intervention targets.`}
+        
+        **Impact on Resilience:**
+        The intervention specifically addresses the **${inputs.flooding_severity}** flood risk by retaining **${stormwater.toFixed(0)}mm** of stormwater annually. The Greenery Index (GI) is projected to improve from **${giEvolution[0].gi_score}** to **${finalGI.toFixed(3)}** over ${timeSteps} years.
+      `;
 
       setResults({
         environmental: {
           cooling_potential: parseFloat(cooling.toFixed(2)),
-          canopy_gain: parseFloat(canopyGain.toFixed(1)),
+          canopy_gain: parseFloat(effectiveCanopyGain.toFixed(1)),
           stormwater_retention: parseFloat(stormwater.toFixed(1)),
           pm25_removal: parseFloat(pm25.toFixed(2)),
           no2_removal: parseFloat(no2.toFixed(2))
@@ -143,12 +179,13 @@ const SimulationModal = ( { isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (
           strategy: recommendation,
           priority,
           rationale
-        }
+        },
+        interpretation // Added interpretation field
       });
 
       clearInterval(progressInterval);
       setStage('results');
-    }, 6000); // 4 second loading duration
+    }, 4000); // 4 second loading duration
   };
 
   const exportReport = () => {

@@ -10,6 +10,20 @@ export interface BarangayData {
   treeCanopy: number; 
   floodExposure: string;
   currentIntervention: string;
+  currentInterventionDetails?: {
+    name: string;
+    type: string;
+    efficiency_score: number;
+    cost: number;
+    impact: number;
+    description: string;
+    short_description?: string;
+    cooling_potential?: number;
+    canopy_gain?: number;
+    stormwater_retention?: number;
+    pm25_removal?: number;
+    no2_removal?: number;
+  };
 }
 
 interface BarangayContextType {

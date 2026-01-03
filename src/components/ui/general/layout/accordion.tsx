@@ -9,6 +9,7 @@ interface AccordionProps {
   hasContent: boolean;
   hasCustomStyling?: boolean;
   customTextStyling?: string;
+  isOpen?: boolean;
 }
 
 export default function Accordion({
@@ -19,9 +20,15 @@ export default function Accordion({
   hasContent,
   hasCustomStyling,
   customTextStyling,
+  isOpen = false,
 }: AccordionProps)
 {
-  const [accordionOpen, setAccordionOpen] = useState(false);
+  const [accordionOpen, setAccordionOpen] = useState(isOpen);
+  
+  useEffect(() => {
+    setAccordionOpen(isOpen);
+  }, [isOpen]);
+
   const handleToggle = () => {
     if(!disabled) setAccordionOpen(!accordionOpen)
     }

@@ -1,0 +1,39 @@
+services:
+  model-api:
+    build:
+      context: ./model_api
+      dockerfile: Dockerfile
+    container_name: greenpoint-model-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./model_api/outputs:/app/outputs
+      - ./model_api/Dataset:/app/Dataset:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - greenpoint-network
+    restart: unless-stopped
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile.nextjs
+    container_name: greenpoint-nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_MODEL_API_URL=http://model-api:8000
+      - NODE_ENV=production
+    depends_on:
+      - model-api
+    networks:
+      - greenpoint-network
+    restart: unless-stopped
+
+networks:
+  greenpoint-network:
+    driver: bridge
+
+volumes:
+  model-outputs:

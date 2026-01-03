@@ -148,6 +148,8 @@ const SimulationInputs = ({ inputs, onInputChange, onReset, baselineData }) => {
                   <option value="urban canopy">Urban Canopy</option>
                   <option value="green corridor">Green Corridor</option>
                   <option value="rain garden">Rain Garden</option>
+                  <option value="green roof">Green Roof</option>
+                  <option value="vertical garden">Vertical Garden</option>
                   <option value="mixed strategy">Mixed Strategy</option>
                 </select>
               </div>

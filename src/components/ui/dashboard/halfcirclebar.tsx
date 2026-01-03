@@ -8,6 +8,8 @@ interface HalfCircleBarProps {
   // Domain for the gauge
   min?: number;
   max?: number;
+  // Color scale domain (for gradient calculation)
+  colorScaleMax?: number; // If set, colors are based on value/colorScaleMax instead of value/max
   // Visual options
   unit?: string; // e.g. "%", "km/h"
   sizePx?: number; // width in pixels; height becomes size/2
@@ -21,6 +23,7 @@ export default function HalfCircleBar({
   value,
   min = 0,
   max = 1,
+  colorScaleMax,
   sizePx = 130,
   trailColor = "#E5E7EB",
 }: HalfCircleBarProps) {
@@ -29,6 +32,11 @@ export default function HalfCircleBar({
   const clampedValue = Math.min(safeMax, Math.max(safeMin, value));
   const range = safeMax - safeMin;
   const percentage = ((clampedValue - safeMin) / range) * 100;
+  
+  // Calculate color based on colorScaleMax if provided, otherwise use percentage
+  const colorScaleMaxValue = colorScaleMax ?? safeMax;
+  const colorRange = colorScaleMaxValue - safeMin;
+  const colorPercentage = ((clampedValue - safeMin) / colorRange) * 100;
 
   const valueColor = (percentage: number) => {
     if (percentage >= 70) {
@@ -41,14 +49,14 @@ export default function HalfCircleBar({
     return "#dc2626"; // Default color for 0 or negative values
   }
 
-  const valueTextColor = valueColor(percentage);
-  const valuePathColor = valueColor(percentage);
+  const valueTextColor = valueColor(colorPercentage);
+  const valuePathColor = valueColor(colorPercentage);
 
   return (
     <div style={{ width: sizePx, height: sizePx / 2 }} className="select-none">
       <CircularProgressbar
         value={percentage}
-        text={clampedValue.toString()}
+        text={`${Math.round(percentage)}%`}
         circleRatio={0.5}
         strokeWidth={10}        
         styles={{
@@ -63,7 +71,7 @@ export default function HalfCircleBar({
           text: {
             fill: valueTextColor,
             textAnchor: 'middle',
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: 'bold',
             transform: 'translate(0, 4px)',
           },

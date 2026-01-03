@@ -16,7 +16,14 @@ import ChoroplethMap from "./ChloropletMap"
 import { getGreeneryClassColor } from "@/lib/chloroplet-colors"
 import { Button } from "../button";
 
-export default function CityGreeneryMap() {
+interface CityAverages {
+  greeneryIndex: number;
+  ndvi: number;
+  treeCanopy: number;
+  lst: number;
+}
+
+export default function CityGreeneryMap({ cityAverages }: { cityAverages?: CityAverages }) {
   const [isOpen, setIsOpen] = React.useState(false)
   const { selectedBarangay } = useBarangay();
   const classColor = getGreeneryClassColor(selectedBarangay?.greeneryIndex || 0);
@@ -67,7 +74,7 @@ export default function CityGreeneryMap() {
           </div>
         </div>
         <CollapsibleContent>
-            <BarangayGreeneryPage />
+            <BarangayGreeneryPage cityAverages={cityAverages} />
         </CollapsibleContent>
       </div>
     </Collapsible>
